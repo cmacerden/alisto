@@ -1,0 +1,32 @@
+{
+  "name": "alisto",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Connection-based class presence and participation companion",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "better-sqlite3": "^12.0.0",
+    "dotenv": "^17.0.0",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.0.0",
+    "express-session": "^1.18.1",
+    "helmet": "^8.1.0",
+    "proper-lockfile": "^4.1.2",
+    "socket.io": "^4.8.4"
+  },
+  "allowScripts": {
+    "better-sqlite3@12.11.1": true
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.4"
+  }
+}

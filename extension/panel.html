@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Alisto · Meet companion</title>
+  <link rel="stylesheet" href="panel.css">
+  <script src="meet.js" defer></script>
+  <script src="api.js" defer></script>
+  <script src="time.js" defer></script>
+  <script src="panel.js" defer></script>
+</head>
+<body>
+  <header><a class="brand" href="panel.html">alisto<span>.</span></a><span class="tag">Meet companion</span></header>
+  <main>
+    <section class="room" aria-labelledby="room-heading">
+      <h1 id="room-heading">Your Meet classroom</h1>
+      <p id="meet-context">Checking the current tab…</p>
+      <p class="notice">Presence uses browser-reported call membership, not attention or camera/mic use. Unsupported Meet layouts/languages show “Cannot verify”; uncertain time is excluded.</p>
+    </section>
+    <p id="status" role="status" aria-live="polite">Connecting to Alisto…</p>
+    <button id="retry" class="secondary" type="button" hidden>Retry connection</button>
+    <section id="auth" class="card" aria-labelledby="auth-heading" hidden>
+      <h2 id="auth-heading">Welcome to Alisto</h2>
+      <p class="muted">Use your existing Alisto account or register here.</p>
+      <form id="auth-form">
+        <label for="role">Account access</label>
+        <select id="role" name="role"><option value="student">Student</option><option value="teacher">Teacher / Admin</option></select>
+        <label for="mode">Account action</label>
+        <select id="mode" name="mode"><option value="login">Log in</option><option value="register">Create account</option></select>
+        <div id="name-field" hidden><label for="name">Name</label><input id="name" name="name" autocomplete="name" maxlength="100" disabled></div>
+        <label for="email">Email</label><input id="email" name="email" type="email" autocomplete="username" maxlength="254" required>
+        <label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" minlength="8" required aria-describedby="password-help">
+        <p id="password-help" class="muted">At least 8 characters; at most 72 UTF-8 bytes.</p>
+        <button id="auth-submit" type="submit">Log in</button>
+      </form>
+    </section>
+    <section id="account" hidden aria-labelledby="account-heading">
+      <div class="account-heading"><div><span id="account-role" class="tag"></span><h2 id="account-heading"></h2></div><button id="logout" class="secondary" type="button">Log out</button></div>
+      <p class="muted">Login is shared with Alisto website tabs in this Chrome profile. Use a separate Chrome profile to test a second account.</p>
+      <section id="teacher-tools" class="card" hidden aria-labelledby="classes-heading">
+        <h3 id="classes-heading">Your classes</h3>
+        <label for="teacher-meet-code">Google Meet link or code (fallback)</label>
+        <input id="teacher-meet-code" type="text" placeholder="https://meet.google.com/abc-defg-hij" maxlength="2048" autocomplete="off" spellcheck="false" aria-describedby="teacher-meet-help">
+        <p id="teacher-meet-help" class="muted">Normally read from your current Meet tab. If no code is detected, paste the actual meeting link or abc-defg-hij code here. This selects a room; it does not prove call membership. Clear this field when switching meetings.</p>
+        <div id="classes"></div>
+        <form id="class-form"><label for="class-title">New class title</label><input id="class-title" name="title" maxlength="100" required><button type="submit">Create class</button></form>
+        <p class="muted">Open the correct Meet tab, then start its Alisto session from a class above. Students use that actual Meet code. Ending Alisto measurement does not end the Google Meet call.</p>
+      </section>
+      <section id="student-meet" class="card" hidden aria-labelledby="student-meet-heading"><h3 id="student-meet-heading">Connect your Meet classroom</h3><p class="muted">Join the call in Google Meet, then connect this tab to the teacher's live Alisto session. Detection continues with the sidebar closed while this Meet tab remains open.</p><label for="student-meet-tab">Google Meet tab</label><select id="student-meet-tab" aria-describedby="student-tab-help"><option value="">Use the selected browser tab</option></select><button id="find-meet-tabs" class="secondary" type="button">Find Meet tabs</button><p class="muted" id="student-tab-help">If the sidebar cannot identify the selected tab, click Find Meet tabs and choose the actual meeting code. This searches only open Google Meet tabs, not other websites.</p><button id="connect-meet" type="button">Connect this Meet tab</button><p class="muted">After an extension reload, refresh your Meet tab once to load the detector. Allow Alisto site access on meet.google.com; if using Incognito, enable Allow in Incognito in extension details. Each additional Meet tab must be connected separately.</p></section>
+      <section id="live-session" class="card" hidden aria-labelledby="live-heading"><div class="account-heading"><h3 id="live-heading">Live Meet presence</h3><button id="end-meet" class="secondary" type="button" hidden>End Alisto session</button></div><p id="live-details" class="muted"></p><p id="live-status" role="status" aria-live="polite"></p><div id="live-students"></div><p class="muted">Activity Rate = detected in-call time / verified measured time after 60-second grace. “Cannot verify” time is excluded from both. Signals are browser-reported, not independently verified attendance.</p></section>
+      <section class="card" aria-labelledby="history-heading"><div class="account-heading"><h3 id="history-heading">Session history</h3><button id="refresh" class="secondary" type="button">Refresh</button></div><div id="history"></div></section>
+      <section id="result" class="card" aria-labelledby="result-heading" hidden><h3 id="result-heading">Saved presence result</h3><p class="notice" id="result-source"></p><div id="result-content"></div></section>
+      <section class="card" aria-labelledby="next-heading"><h3 id="next-heading">Coming next</h3><p class="muted">General Chat, Participation Chat, timed prompts, and full reports/exports are not enabled yet.</p></section>
+    </section>
+    <footer>Local development build · English Meet UI adapter. Only meeting code and call-state signals are sent; no participant lists, chat content, camera/mic state, or focus history. Missing signals expire after 15 seconds as “Cannot verify”.</footer>
+  </main>
+</body>
+</html>

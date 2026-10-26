@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Alisto · Student dashboard</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/js/common.js" defer></script>
+  <script src="/socket.io/socket.io.js" defer></script>
+  <script src="/js/live.js" defer></script>
+  <script src="/js/student.js" defer></script>
+</head>
+<body>
+  <header class="site-header"><a class="brand" href="/">alisto<span class="brand-dot">.</span></a><div class="header-actions"><span class="role-tag">Student</span><button class="quiet-button" id="logout" type="button">Log out</button></div></header>
+  <main class="container dashboard">
+    <div class="page-heading"><span class="eyebrow">Your learning space</span><h1 id="greeting">Welcome to Alisto</h1><p class="lead">Your presence. Your participation. Always visible to you.</p></div>
+    <p id="page-status" class="form-status" role="status" aria-live="polite">Loading your account…</p>
+    <div class="dashboard-grid">
+      <section class="panel" aria-labelledby="join-heading"><span class="card-icon" aria-hidden="true">↗</span><h2 id="join-heading">Join your class</h2><p class="muted">Enter your teacher's permanent six-character class code.</p><form id="join-form"><label for="class-code">Class code</label><input id="class-code" name="code" placeholder="ABC234" maxlength="6" minlength="6" pattern="[A-Za-z0-9]{6}" autocapitalize="characters" autocomplete="off" required aria-describedby="join-help"><p id="join-status" class="form-status" role="status" aria-live="polite"></p><button class="button full-width" id="join-button" type="submit" disabled>Join live session</button></form><p class="input-help" id="join-help">Your teacher must start a session first. Joining a different session leaves the previous one in this tab.</p><p class="muted" id="connection-status" role="status" aria-live="polite">Connecting to Alisto…</p></section>
+      <section class="panel" aria-labelledby="history-heading"><span class="eyebrow">Your progress, in view</span><h2 id="history-heading">My sessions</h2><p class="muted">Saved presence summaries are available now. Full reports, CSV, and email arrive in Phase 4.</p><div id="session-history" class="class-list"></div></section>
+    </div>
+    <section class="panel session-panel" id="current-session" aria-labelledby="current-title" hidden>
+      <div class="session-heading"><div><span class="eyebrow" id="session-label">Your session</span><h2 id="current-title"></h2></div><button class="quiet-button" id="leave-session" type="button">Leave this tab</button></div>
+      <p class="muted" id="session-details"></p>
+      <div class="metrics"><div><span class="eyebrow">Your status</span><strong id="presence-status">Offline</strong></div><div><span class="eyebrow">Activity Rate</span><strong id="activity-rate">N/A</strong></div><div><span class="eyebrow">Measurement</span><span class="metric-note" id="grace-status"></span></div></div>
+      <div class="time-summary"><p>Connected after grace: <strong id="connected-time">00:00:00</strong></p><p>Total measured time: <strong id="measured-time">00:00:00</strong></p></div>
+      <p class="input-help" id="session-cutoff"></p><p class="input-help">Closing one tab does not mark you Offline if another tab is still connected. General and Participation Chat arrive in Phase 3.</p>
+    </section>
+    <section class="panel session-panel" id="saved-presence" aria-labelledby="saved-title" hidden><span class="eyebrow">Saved presence result</span><h2 id="saved-title"></h2><div id="saved-details"></div><p class="input-help">Viewing a saved result does not leave your live session. Full reports, CSV, and email arrive in Phase 4.</p></section>
+    <p class="fine-print">Alisto measures connection and participation—not attention. No webcam, microphone, or other-tab tracking.</p>
+  </main>
+</body>
+</html>

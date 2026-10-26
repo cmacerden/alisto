@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Alisto · Teacher dashboard</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/js/common.js" defer></script>
+  <script src="/socket.io/socket.io.js" defer></script>
+  <script src="/js/live.js" defer></script>
+  <script src="/js/teacher.js" defer></script>
+</head>
+<body>
+  <header class="site-header"><a class="brand" href="/">alisto<span class="brand-dot">.</span></a><div class="header-actions"><span class="role-tag">Teacher / Admin</span><button class="quiet-button" id="logout" type="button">Log out</button></div></header>
+  <main class="container dashboard">
+    <div class="page-heading"><span class="eyebrow">Your teaching space</span><h1 id="greeting">Your classes</h1><p class="lead">A home for every class you bring together.</p></div>
+    <div class="dashboard-grid">
+      <section aria-labelledby="classes-heading"><div class="section-heading"><h2 id="classes-heading">My classes</h2><span class="count" id="class-count">0</span></div><p id="list-status" class="form-status" role="status" aria-live="polite">Loading your classes…</p><div id="class-list" class="class-list"></div></section>
+      <aside><section class="panel" aria-labelledby="create-heading"><span class="eyebrow">Make a little room</span><h2 id="create-heading">Create a class</h2><p class="muted">Each class gets a permanent six-character join code.</p><form id="class-form"><label for="class-title">Class title</label><input id="class-title" name="title" placeholder="e.g. Introduction to Computing" required maxlength="100"><p class="form-status" id="create-status" role="status" aria-live="polite"></p><button class="button full-width" id="create-button" type="submit" disabled>Create class</button></form></section><section class="note"><h3>Presence release · Phase 2</h3><p>Start a session and share its class code. Live rates measure connection, not attention. Chat and participation arrive in Phase 3.</p></section></aside>
+    </div>
+    <section class="panel session-panel" aria-labelledby="monitor-heading">
+      <div class="session-heading"><div><span class="eyebrow">Presence, not guessing</span><h2 id="monitor-heading">Session monitor</h2></div><button class="button danger-button" id="end-session" type="button" hidden>End session now</button></div>
+      <label for="session-select">Live and past sessions</label><select id="session-select"><option value="">No sessions yet</option></select>
+      <p id="connection-status" class="muted" role="status" aria-live="polite">Connecting to live updates…</p>
+      <p id="monitor-status" class="form-status" role="status" aria-live="polite"></p>
+      <div id="monitor-content" hidden>
+        <h3 id="session-title"></h3><p class="muted" id="session-details"></p>
+        <div class="metrics"><div><span class="eyebrow">Students</span><strong id="student-total">0</strong></div><div><span class="eyebrow">Active</span><strong id="active-total">0</strong></div><div><span class="eyebrow">Offline</span><strong id="offline-total">0</strong></div></div>
+        <p class="muted" id="offline-names"></p>
+        <div class="table-scroll"><table><caption class="visually-hidden">Connection-based student presence measurements</caption><thead><tr><th scope="col">Student</th><th scope="col">Status</th><th scope="col">Activity Rate</th><th scope="col">Connected time</th><th scope="col">Measured time</th></tr></thead><tbody id="presence-rows"></tbody></table></div>
+        <p class="input-help" id="session-cutoff"></p>
+      </div>
+      <p class="fine-print">The first 60 uninterrupted seconds are excluded. Connection loss may take up to approximately 20 seconds to detect. Classes with session history cannot be deleted.</p>
+    </section>
+  </main>
+</body>
+</html>

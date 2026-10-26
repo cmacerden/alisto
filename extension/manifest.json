@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Alisto · Meet classroom companion",
+  "version": "0.2.5",
+  "description": "Google Meet class sessions and browser-reported call presence, with student and teacher dashboards.",
+  "minimum_chrome_version": "116",
+  "incognito": "split",
+  "permissions": ["sidePanel", "storage"],
+  "host_permissions": ["https://meet.google.com/*", "http://localhost:3000/*"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "Open Alisto beside Google Meet" },
+  "side_panel": { "default_path": "panel.html" },
+  "content_scripts": [{
+    "matches": ["https://meet.google.com/*"],
+    "js": ["meet.js", "detector.js", "content.js"],
+    "run_at": "document_idle",
+    "all_frames": false
+  }],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src http://localhost:3000; base-uri 'none'; frame-src 'none'"
+  }
+}

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Alisto · Account access</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/js/common.js" defer></script>
+  <script src="/js/auth.js" defer></script>
+</head>
+<body>
+  <header class="site-header"><a class="brand" href="/">alisto<span class="brand-dot">.</span></a><a class="quiet-link" href="/">Change role</a></header>
+  <main class="auth-layout container">
+    <section class="auth-intro"><span class="pill" id="role-label">Account access</span><h1>Your class<br>starts here<span class="brand-dot">.</span></h1><p class="lead">A space for presence and participation,<br>without watching your every move.</p><p class="fine-print">No webcam, microphone, or device monitoring.</p></section>
+    <section class="panel auth-panel" aria-labelledby="form-title">
+      <div class="mode-switch" aria-label="Account action"><button type="button" id="login-mode" aria-pressed="true">Log in</button><button type="button" id="register-mode" aria-pressed="false">Register</button></div>
+      <h2 id="form-title">Welcome back</h2><p class="muted" id="form-description">Log in to your account to continue.</p>
+      <form id="auth-form">
+        <div id="name-field" hidden><label for="name">Full name</label><input id="name" name="name" autocomplete="name" maxlength="100"></div>
+        <label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="email" required maxlength="254">
+        <label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" minlength="8" required aria-describedby="password-help"><p class="input-help" id="password-help">At least 8 characters; at most 72 UTF-8 bytes.</p>
+        <p id="form-status" class="form-status" role="status" aria-live="polite"></p>
+        <button class="button full-width" type="submit" id="submit-button" disabled>Log in</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

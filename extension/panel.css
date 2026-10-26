@@ -1,0 +1,37 @@
+:root { color-scheme: light; font-family: "Segoe UI", system-ui, sans-serif; color: #243b35; background: #f8f7f2; font-size: 14px; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; line-height: 1.6; }
+header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #dce1d7; }
+.brand { color: inherit; font-size: 30px; font-weight: 800; letter-spacing: -2px; text-decoration: none; }
+.brand span { color: #b74932; }
+main { padding: 18px; max-width: 680px; margin: auto; }
+h1 { font-size: 23px; line-height: 1.3; }
+h2 { font-size: 20px; }
+h3 { font-size: 17px; }
+h1, h2, h3 { margin: 0 0 12px; }
+p { margin: 8px 0 14px; overflow-wrap: anywhere; }
+.card { background: #fffefa; border: 1px solid #dce1d7; border-radius: 12px; padding: 18px; margin: 18px 0; }
+.tag { color: #295b48; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; }
+.muted, footer { color: #5e6b64; font-size: 12px; }
+.notice { border-left: 3px solid #b74932; padding: 8px 12px; background: #f4eee4; font-size: 12px; }
+label { display: block; font-weight: 600; margin: 14px 0 5px; }
+input, select, button { font: inherit; }
+input, select { width: 100%; min-height: 44px; background: #fffefa; border: 1px solid #b9c4b8; border-radius: 7px; padding: 9px; color: inherit; }
+button { border: 0; border-radius: 7px; padding: 10px 14px; color: white; background: #295b48; cursor: pointer; margin-top: 12px; min-height: 42px; }
+form button { width: 100%; }
+button.secondary { background: transparent; color: #295b48; border: 1px solid #b9c4b8; }
+button.danger { background: #a02e20; color: white; margin-left: 8px; }
+button.danger.secondary { background: transparent; color: #a02e20; border-color: #a02e20; }
+.delete-confirmation { margin-top: 12px; }
+button:disabled { opacity: .55; cursor: wait; }
+:focus-visible { outline: 3px solid #b74932; outline-offset: 3px; }
+.account-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.account-heading button { margin: 0; }
+.item { padding: 12px 0; border-bottom: 1px solid #dce1d7; overflow-wrap: anywhere; }
+.item:last-child { border-bottom: 0; }
+.item h4 { margin: 0; font-size: 14px; }
+.item p { margin: 5px 0; }
+.error { color: #a02e20; }
+footer { border-top: 1px solid #dce1d7; padding-top: 16px; margin-top: 24px; }
+@media (max-width: 340px) { main { padding: 12px; } .card { padding: 12px; } header { padding: 12px; } }
