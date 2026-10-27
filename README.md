@@ -1,160 +1,88 @@
 # Alisto
 
-A Google Meet classroom companion moving to a Chrome extension, backed by Node.js and SQLite. The approved specification is in [plan.md](plan.md).
+Alisto is a **Chrome extension for Google Meet classrooms** that helps teachers manage sessions, review browser-reported call presence, and record student participation. It runs in Chrome's side panel with a Node.js and SQLite backend.
 
-## Chrome extension — Meet presence prototype ready
+## What Alisto does
 
-The new interface is in [`extension/`](extension/README.md). It provides role-based account access, classes, sessions linked to the **actual Google Meet code**, browser-reported call presence, grace/Activity Rates, excluded uncertain time, teacher monitoring, and saved presence results. Reload the extension and refresh existing Meet tabs to update. The backend remains required.
+- **Class management:** separate Student and Teacher/Admin accounts, teacher-owned classes, and sessions linked to actual Google Meet rooms.
+- **Presence summaries:** Activity Rate based on detected matching-call time after 60 uninterrupted seconds of grace. Uncertain membership shows **Cannot verify** and is excluded from the rate.
+- **Discussion and participation:** separate General Chat and timed prompts, with Everyone or Teacher-only responses earning equal credit.
+- **Saved results:** session history, participation totals, teacher class CSV exports, and personal student CSV/DOCX downloads.
+- **Private access:** teachers access only their own classes and sessions; students access only their own measurements and reports.
 
-Students whose current tab is not recognized can use **Find Meet tabs** to choose the actual meeting. A verified top-frame page-script fallback handles withheld tab URLs without granting attendance merely from a room code. Missing page scripts require a Meet-page refresh/site-access check.
+**Alisto does not measure attention, focus, camera/microphone use, or learning.** An open Meet link alone does not prove call membership. Detection depends on recognizable English Meet controls and is not independently verified attendance.
 
-**Prototype, not independently verified attendance:** an English Meet UI adapter detects recognizable membership controls; unsupported UI or missing evidence shows **Cannot verify**. An open Meet tab alone earns no call time. **Not yet enabled:** chats, participation, full reports/CSV/email. Old website sessions below still measure **Alisto connection time**. Version-3 migration preserves them and stores Meet measurements separately; additive version 4 adds a monotonic session-ID allocator for safe explicit history deletion.
+## Development phases — summary
 
-Teachers can now delete their own ended/interrupted sessions from extension **Session history**, after an inline permanent-deletion confirmation. This removes that session and its presence results from teacher and student history; it does not delete accounts, classes, other sessions, or the Google Meet call. Live sessions are protected. No existing sessions are deleted automatically.
+| Phase | Focus | Status |
+| --- | --- | --- |
+| 1 — Foundation | Accounts, roles, classes, and persistent storage. | Implemented |
+| 2 — Presence | Live sessions, grace, Activity Rate, saved results, and recovery; extended to Google Meet through Chrome. | Implemented |
+| 3 — Participation | General Chat, timed prompts, response visibility, and Participation Rate. | Implemented |
+| 4 — Reports | Authorized saved summaries, CSV exports, student DOCX downloads, and email/preview support. | Implemented; real SMTP setup and CSV template redesign deferred |
+| 5 — Reliability | Privacy, reconnect, timing, and crash-recovery verification. | 179 automated tests passed at the latest recorded check; full live acceptance pending |
 
-Extension **Your classes** also offers Teacher-owned class deletion with inline confirmation. Classes with live/saved sessions are protected; those sessions must be explicitly removed first. This uses the existing class DELETE endpoint and does not delete Google Meet meetings or accounts.
+**Current status:** extension **0.5.0**, installed manually—not yet published on the Chrome Web Store. Shared HTTPS hosting and a multi-computer classroom pilot are still pending. Without configured SMTP, email creates explicitly labeled Ethereal previews, not inbox delivery; use DOCX for a downloadable student report.
 
-## Current state: Phase 2 — Presence
+The extension is the primary interface. The older website remains available for compatibility; its historical Alisto-connection measurements are separate from Meet call measurements.
 
-Implemented: role selection, student and teacher registration/login, separate dashboards, persistent SQLite login sessions, teacher-owned classes, permanent six-character class codes, code copying, and confirmed class deletion.
+## Use Alisto in Chrome
 
-Phase 2 adds teacher-started live sessions, student joining by class code, Active/Offline presence, a 60-second grace period, live Activity Rates, multi-tab connection handling, session ending, saved presence summaries, and interruption recovery. Accounts, existing classes, codes, and login sessions are preserved by the additive version-2 schema upgrade.
+Requires desktop **Chrome 116+** and **Node.js 22+**. Initial setup takes about **5–10 minutes** after installing these prerequisites.
 
-Use **Copy code** on a class card to copy its six-character code. It tries click-based compatibility copying and the standard Clipboard API. If both are blocked, the code is selected for manual copying. **Delete class** opens an inline confirmation, not a popup. Deletion permanently removes the class and code, requires teacher ownership and CSRF protection, and is blocked if restrictive linked records exist. No classes are deleted automatically.
+### 1. Download the project and start the backend
 
-Not implemented yet: General Chat, Participation Chat, timed participation prompts, Participation Rates/classifications, complete session reports, CSV export, and email. Presence-only saved results are available now; they are not the complete Phase 4 reports.
+1. Download this repository using **Code → Download ZIP** and extract it, or clone the repository. Keep the extracted folder; Chrome loads the extension from it.
+2. Open a terminal in the project root (the folder containing `package.json`). On Windows PowerShell, run:
 
-## Run locally — about 2 minutes after prerequisites
+   ```powershell
+   npm.cmd install
+   npm.cmd start
+   ```
 
-Requires Node.js 22 or newer and npm. Node.js 24 LTS is recommended.
+   On other systems, use `npm install` and `npm start`. If npm blocks the native dependency install script, review and approve only `better-sqlite3` using `npm install-scripts approve better-sqlite3` where supported, then run `npm rebuild better-sqlite3`. On PowerShell, use `npm.cmd` for these commands too; do not disable script protections globally.
+3. Keep the terminal running while using Alisto. Open <http://localhost:3000> to check the backend. If Alisto is already running, use that server instead of starting a second one.
 
-1. Install dependencies: `npm install`.
-2. If npm reports a blocked native dependency script, review and approve only `better-sqlite3` using `npm install-scripts approve better-sqlite3` (newer npm versions), then run `npm rebuild better-sqlite3`.
-3. Run `npm start`.
-4. Open <http://localhost:3000>.
+**Local-only limitation:** the extension connects to `http://localhost:3000` on the same computer. Installing it on multiple computers does **not** create a shared classroom. That requires a shared HTTPS backend and matching extension configuration; separate local servers have separate accounts and records.
 
-On Windows PowerShell, use `npm.cmd` instead of `npm` if execution policy blocks `npm.ps1`. No execution-policy change is required.
+### 2. Load the extension in Chrome
 
-The app creates `data/alisto.sqlite` and a persistent development session secret in `data/session-secret`. Both are ignored by Git. Protect and back up the data directory. SQLite uses WAL mode; avoid copying a live database without a proper SQLite backup procedure.
+1. Enter `chrome://extensions` in Chrome's address bar.
+2. Turn on **Developer mode** in the upper-right corner.
+3. Click **Load unpacked** and select the project's **`extension` folder**, not the project root or ZIP file. This folder contains `manifest.json`.
+4. Open Chrome's **Extensions** menu (puzzle-piece icon) and pin **Alisto · Meet classroom companion**.
+5. Open a Google Meet tab and click the **Alisto** toolbar icon. Register or sign in as **Student** or **Teacher/Admin** in the side panel. Existing Alisto accounts work; there are no pre-created accounts.
 
-Run only one Alisto server against a database. The server entry point obtains an exclusive instance lock before startup recovery, so launching a second server cannot close the first server's live sessions. After an abrupt process termination, the abandoned lock may require 10 seconds to expire before a restart. Normal shutdown releases it immediately. Do not manually remove a lock while its server is running.
+If a school-managed profile blocks Developer mode or unpacked extensions, ask the administrator for approval; do not bypass school policy.
 
-There are no seeded accounts. Register from the appropriate role page. The same email can have separate student and teacher accounts, with independent credentials. Passwords require at least 8 characters and at most 72 UTF-8 bytes.
+### 3. Start and join a classroom session
 
-## Configuration
+For teacher/student testing on one computer, use **separate Chrome profiles** and load the extension in each. The website and extension share a login cookie within a profile.
 
-Optionally copy `.env.example` to `.env` and configure:
+1. **Teacher:** open the actual Meet room and Alisto sidebar. Create or select your class, check the Meet code, and click **Start Meet session**. If needed, use **Google Meet link or code (fallback)**. Use the Meet code, not the legacy six-character Alisto class code.
+2. **Student:** join the same Meet call, sign in to Alisto, and click **Connect this Meet tab**. If the tab is not identified, use **Find Meet tabs**, select the matching room, and connect. The pre-join screen alone does not earn in-call time.
+3. **During the session:** use **Overview** for presence/rates, **General Chat** for discussion, and **Prompts & responses** for timed participation. Activity Rate measurement begins after 60 uninterrupted seconds of verified in-call grace.
+4. **Teacher:** click **End Alisto session** when finished. This stops measurement, not the Google Meet call.
+5. **Saved results:** open **Session history → View saved session → Overview**. Teachers can download the full-class CSV; students can download their own CSV or **Download my report (.docx)**.
 
-| Variable | Default / meaning |
-| --- | --- |
-| `PORT` | `3000` |
-| `DATABASE_PATH` | `./data/alisto.sqlite`; relative paths resolve from the launch directory |
-| `SESSION_SECRET` | Required in production; at least 32 characters; use a cryptographically random secret |
-| `NODE_ENV` | Use `production` for deployment; requires HTTPS for secure cookies |
-| `TRUST_PROXY` | `0`; set to `1` only behind exactly one trusted reverse proxy |
+### 4. Update or troubleshoot
 
-Keep the session secret stable to preserve valid logins across restarts. Do not publish `.env` or the data directory. Automatic development-secret creation is disabled in production.
+- **Extension updates:** click Alisto's **Reload** button at `chrome://extensions`, then **refresh existing Meet tabs**.
+- **Backend unavailable:** confirm the server is running on port 3000. Installing the extension does not start it. Before restarting an existing backend, end live Alisto sessions and make a proper SQLite backup.
+- **Meet tab not found / Cannot verify:** refresh Meet, join the call, and check Alisto's **Site access** for `meet.google.com`. Unsupported layouts may remain unverifiable.
+- **Browser restart:** reopen Alisto and reconnect the Meet tab. Closing only the sidebar does not stop detection in a connected, open Meet tab.
+- **Incognito:** enable **Allow in Incognito** in extension details if needed. Separate profiles are recommended for testing.
+
+## Configuration and data safety
+
+Optional settings are listed in `.env.example`. The default backend port is `3000`, and the database is `data/alisto.sqlite`. Keep `.env`, session secrets, databases, and backups private.
+
+Run only **one server per database**. Use SQLite's backup mechanism rather than copying a live database file because SQLite uses WAL mode. Never remove a live instance lock. Startup recovery finalizes interrupted sessions at their saved checkpoint without counting downtime.
 
 ## Tests
 
-Run `npm test` (or `npm.cmd test` on Windows).
+Run `npm.cmd test` on Windows PowerShell, or `npm test` elsewhere. Tests use isolated temporary/in-memory databases, not real user records. Automated checks do not replace real Meet and school-policy acceptance testing.
 
-Tests use isolated temporary/in-memory SQLite databases and ephemeral local HTTP servers. Foundation tests cover authentication, validation, CSRF, persistent sessions, rate limiting, codes, ownership, and deletion. Clipboard tests cover compatibility methods and cleanup. Phase 2 tests cover grace boundaries/resets, measured disconnection, multiple tabs, late joins, locked results, startup recovery, additive migration, authenticated polling/WebSocket connections, socket logout/expiration, and roster privacy. Test data is removed afterward; the application database is untouched.
+## Further details
 
-## HTTP API
-
-| Area | Endpoints |
-| --- | --- |
-| Security token | `GET /api/auth/csrf` |
-| Account access | `POST /api/auth/register`, `POST /api/auth/login` |
-| Current account | `GET /api/auth/me`, `POST /api/auth/logout` |
-| Classes — teacher only | `GET /api/classes`, `POST /api/classes`, `GET /api/classes/:id`, `DELETE /api/classes/:id` |
-
-Session endpoints:
-
-| Action | Endpoint and access |
-| --- | --- |
-| Start live session | `POST /api/classes/:id/sessions` — owning teacher |
-| Session history | `GET /api/sessions` — own classes for teachers; previously joined sessions for students |
-| Presence snapshot | `GET /api/sessions/:id` — owning teacher or previously joined student |
-| End immediately | `POST /api/sessions/:id/end` — owning teacher |
-| Permanently delete saved session | `DELETE /api/sessions/:id` with `{ "confirm": true }` — owning teacher; ended/interrupted only |
-
-Starting a second live session for the same class returns 409. Classes with session history cannot be deleted; this protects saved results. Students receive only their own presence measurements, never another student's email or presence roster.
-
-Meet extension endpoints (cookie login + CSRF required for writes):
-
-| Action | Endpoint |
-| --- | --- |
-| Start linked session | `POST /api/meet/classes/:id/sessions` with `{ meetCode }` — owning teacher |
-| Resolve current Meet room | `GET /api/meet/live/:code` — authenticated; no roster/history |
-| Enroll observation source | `POST /api/meet/sessions/:id/join` with `{ meetCode, sourceId }` — student |
-| Membership evidence | `POST /api/meet/sessions/:id/observe` with `{ meetCode, sourceId, state }` — enrolled student; state `in`, `out`, or `unknown` |
-
-Meet sessions reuse authorized `GET /api/sessions/:id`, history, and teacher ending. Legacy Socket.IO student joining cannot credit Meet sessions. Evidence expires after 15 seconds; unknown intervals are excluded from numerator/denominator and disclosed as `excluded_seconds`. Unknown live snapshots have `status: null` and `detection_notice: "Cannot verify"`, not a fabricated Offline status. The extension README explains grace, multiple sources, lifecycle, and detection limitations.
-
-Send JSON for request bodies. All state-changing API requests require the session's token in `X-CSRF-Token`. Obtain it from the security-token endpoint; successful authentication returns a replacement after session rotation. Browser requests must preserve cookies.
-
-## Try Phase 2 — about 3 minutes
-
-1. Log in as a teacher, create/select a class, and click **Start session**.
-2. Open a private/incognito browser window for the student account so teacher and student cookies remain separate. Register/log in, enter the class code, and click **Join live session**.
-3. Check that both views show Active immediately and a 60-second grace countdown. After grace, connected and measured time begin and Activity Rate becomes measurable.
-4. Use **Leave this tab**, or close all student session tabs. The teacher sees Offline; reconnecting after measurement begins does not restart grace. Multiple connected tabs count as one student.
-5. Click **End session now** as teacher. Everyone becomes Offline and presence results stop changing. Both roles can retrieve the saved presence result from session history.
-
-Do not switch teacher/student login within the same browser profile to simulate two people: they intentionally share one login cookie, and signing in under a different account disconnects sockets for the replaced login.
-
-### Timing and recovery
-
-- Server timestamps own all calculations. The browser displays server snapshots approximately once per second; it does not track focus, clicks, keys, or other tabs/apps.
-- Grace requires 60 uninterrupted connected seconds. Disconnecting before grace completes resets it; once measurement starts, all subsequent time until ending counts in the denominator. Chat will not affect this rate.
-- No measured time means N/A, not 0%. A disconnect is counted when detected; automatic connection checks may take approximately 20 seconds to recognize an unexpected network loss.
-- Consistent checkpoints persist every 5 seconds and on join/disconnect/end. Startup finalizes interrupted sessions at their last saved cutoff, marks everyone Offline, and excludes later downtime. Up to the unsaved interval can be lost on abrupt failure. Orderly shutdown saves a final consistent checkpoint.
-- Ended/interrupted presence results are locked. Rejoining requires a new live session after closure; the class code stays the same. Full participation-aware reports and export/email remain deferred.
-
-### Socket.IO protocol
-
-The client is served locally at `/socket.io/socket.io.js`. Handshakes require the authenticated login cookie plus `auth.csrfToken`. Foreign browser origins are rejected. Socket actions revalidate the persisted login and enforce roles/ownership; logout disconnects associated sockets immediately, and expiration is checked automatically.
-
-| Event | Purpose |
-| --- | --- |
-| `session:watch` | Teacher selects an owned session using `{ sessionId }` |
-| `session:join` | Student joins with `{ code }`, or reconnects to a previously joined live session with `{ sessionId }` |
-| `session:leave` | Student leaves the session in this socket/tab only |
-| `presence:update` | Server sends a teacher roster or a student-only snapshot, never a public roster |
-| `sessions:changed` | Server tells authorized accounts to refresh their session list |
-| `session:deleted` | Server notifies affected accounts to clear the deleted session's cached view; old subscriptions are removed |
-
-Action acknowledgements have `{ ok: true, data }` or `{ ok: false, status, error }`. A student connection can participate in only one session at a time; joining another detaches the previous session in that tab. Viewing saved results does not disconnect a student's live session.
-
-## Structure
-
-```text
-server.js                 Environment configuration and server lifecycle
-lib/app.js                Express application, authentication, and class routes
-lib/database.js           SQLite initialization
-lib/session-store.js      Persistent express-session store
-lib/presence.js           Server-owned grace/timing, checkpoints, and recovery
-lib/meet-presence.js      Separate Meet evidence, uncertainty-aware timing, and saved counters
-lib/session-ids.js        Monotonic session IDs that are not reused after deletion
-lib/realtime.js           Authenticated Socket.IO events and private updates
-lib/instance-lock.js      Prevent concurrent server startup/recovery against one database
-database/schema.sql       Additive version-4 schema; preserves older records until explicit deletion
-extension/                Manifest V3 side panel, worker, Meet detector, and setup guide
-public/                   HTML, CSS, and browser JavaScript
-test/                     Foundation, clipboard, presence, migration, and real-time tests
-plan.md                   Approved specification and phased roadmap
-```
-
-Phase 3 adds the message and participation tables described in the plan. Existing user data must be preserved when introducing future schema migrations. A database marked with a newer unsupported schema version is rejected, not downgraded.
-
-## Security boundaries
-
-- Passwords are hashed with bcrypt; API responses never include password hashes.
-- Sessions are stored in SQLite with HttpOnly, SameSite cookies, an eight-hour expiry, and secure cookies in production.
-- State-changing requests require CSRF protection. Authentication attempts are rate-limited.
-- Every class query checks teacher ownership. Students cannot create or retrieve teacher class lists.
-- Frontend user content is rendered with `textContent`; Helmet applies security headers and a restrictive content security policy. No external fonts or tracking scripts are used.
-
-Phases 1–2 have automated checks, not a complete production security review. Final reliability and end-to-end verification remain part of Phase 5.
+See [the extension guide](extension/README.md) for detailed installation and real-call checks. Backend code is in `lib/`, extension code in `extension/`, and automated checks in `test/`.
