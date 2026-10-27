@@ -18,6 +18,8 @@ coverage/
 *.pfx
 
 # Keep documentation exports and local agent configuration off GitHub.
+/AGENTS.md
+/plan.md
 docs/
 generated_documents/
 *.docx
