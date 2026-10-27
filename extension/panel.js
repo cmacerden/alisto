@@ -13,6 +13,8 @@
   let liveSessionId = null;
   let savedSessionId = null;
   let pollRunning = false;
+  const classroom = createClassroomPanel({ container: '#live-classroom', overview: '#live-overview', api, getUser: () => user, onError: fail });
+  const savedClassroom = createClassroomPanel({ container: '#saved-classroom', overview: '#result-content', api, getUser: () => user, onError: fail });
 
   function status(message, error = false) {
     $('#status').textContent = message;
@@ -21,6 +23,7 @@
 
   function clearAccount() {
     user = null;
+    classroom.reset(); savedClassroom.reset();
     requestGeneration++;
     $('#account').hidden = true;
     $('#auth').hidden = false;
@@ -95,28 +98,91 @@
     const identity = await api.request('/api/auth/me');
     setAccount(identity.user);
     const generation = requestGeneration;
-    const snapshot = await api.request(`/api/sessions/${id}`);
+    const snapshot = await api.request(`/api/sessions/${id}/report`);
     if (generation !== requestGeneration) return;
+    if (snapshot.viewer.id !== user.id || snapshot.viewer.role !== user.role) { clearAccount(); throw new Error('Account changed. Log in again to open the report.'); }
     if (snapshot.session.status === 'live') throw new Error('Only ended presence results can be viewed in this build.');
     const content = $('#result-content'); content.replaceChildren();
     $('#result-source').textContent = snapshot.session.source === 'meet'
       ? `Google Meet ${snapshot.session.meet_code}: browser-reported call time. Unverifiable intervals are excluded; this is not proof of attention.`
       : 'Legacy result: Alisto connection time, not Google Meet call time.';
-    content.append(paragraph(`${snapshot.session.class_title} · ${label(snapshot.session)}`));
+    content.append(paragraph(`${snapshot.session.class_title} · ${snapshot.completion_label}`));
+    content.append(paragraph(`Session ${snapshot.session.id} · ${new Date(snapshot.session.started_at).toLocaleString()}`));
     content.append(paragraph(`Locked at ${new Date(snapshot.session.ended_at).toLocaleString()}`));
+    content.append(paragraph(snapshot.notice));
     const students = user.role === 'teacher' ? snapshot.students : [snapshot.self];
     if (!students.length) content.append(paragraph('No students joined this session.'));
     for (const student of students) {
       const item = document.createElement('article'); item.className = 'item';
       const title = document.createElement('h4'); title.textContent = student.name;
-      item.append(title, paragraph(`Activity Rate: ${rate(student.activity_rate)} · Final status: ${student.status}`),
+      item.append(title, paragraph(student.email), paragraph(`Activity Rate: ${rate(student.activity_rate)} · Final status: ${student.status}`),
         paragraph(`${snapshot.session.source === 'meet' ? 'In call' : 'Connected'} after grace: ${duration(student.active_seconds)} · Measured: ${duration(student.total_seconds)}`));
       if (snapshot.session.source === 'meet') item.append(paragraph(`Cannot verify (excluded since enrollment): ${duration(student.excluded_seconds)}`));
+      if (student.participation) item.append(participationLine(student.participation));
       content.append(item);
     }
+    addReportControls(content, id);
     $('#result').hidden = false;
     savedSessionId = id;
+    await savedClassroom.refresh(id);
     $('#result').scrollIntoView({ block: 'nearest' });
+  }
+
+  function addReportControls(content, id) {
+    const viewer = `${user.role}:${user.id}`;
+    const valid = () => user && `${user.role}:${user.id}` === viewer && savedSessionId === id && download.isConnected;
+    const download = document.createElement('button'); download.type = 'button'; download.className = 'secondary';
+    download.textContent = user.role === 'teacher' ? 'Download full-class CSV' : 'Download my CSV';
+    download.addEventListener('click', () => busy(async () => {
+      const result = await api.request(`/api/sessions/${id}/report.csv`);
+      if (!valid()) return;
+      if (result.viewer !== viewer) { clearAccount(); throw new Error('Account changed. Log in again before downloading.'); }
+      const url = URL.createObjectURL(new Blob(['\uFEFF', result.csv], { type: 'text/csv;charset=utf-8' }));
+      const anchor = document.createElement('a'); anchor.href = url;
+      anchor.download = `alisto-session-${id}-${user.role === 'teacher' ? 'class' : 'student-' + user.id}.csv`;
+      document.body.append(anchor); anchor.click(); anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      status('CSV download requested. Check your browser downloads.');
+    }));
+    content.append(download);
+    if (user.role !== 'student') return;
+    const documentDownload = document.createElement('button'); documentDownload.type = 'button'; documentDownload.className = 'secondary';
+    documentDownload.textContent = 'Download my report (.docx)';
+    documentDownload.addEventListener('click', () => busy(async () => {
+      const result = await api.request(`/api/sessions/${id}/report.docx`);
+      if (!valid()) return;
+      if (result.viewer !== viewer) { clearAccount(); throw new Error('Account changed. Log in again before downloading.'); }
+      const url = URL.createObjectURL(new Blob([result.document], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }));
+      const anchor = document.createElement('a'); anchor.href = url;
+      anchor.download = `alisto-session-${id}-student-${user.id}.docx`;
+      document.body.append(anchor); anchor.click(); anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      status('Document download requested. Open it in Word, LibreOffice, or upload it to Google Docs.');
+    }));
+    content.append(documentDownload);
+    const email = document.createElement('button'); email.type = 'button'; email.className = 'secondary';
+    email.textContent = 'Email my report / create preview';
+    const outcome = paragraph('Uses your registered email. Without SMTP, your report is stored on the Ethereal test service for preview only; no inbox delivery.', 'notice');
+    outcome.setAttribute('role', 'status');
+    email.addEventListener('click', () => busy(async () => {
+      outcome.replaceChildren(document.createTextNode('Sending report request… Do not retry while it is in progress.'));
+      try {
+        const result = await api.request(`/api/sessions/${id}/report/email`, { method: 'POST' });
+        if (!valid()) return;
+        if (`${result.viewer?.role}:${result.viewer?.id}` !== viewer) { clearAccount(); throw new Error('Account changed. Log in again to view the email result.'); }
+        outcome.textContent = result.message;
+        if (result.mode === 'preview' && result.preview_url) {
+          const url = new URL(result.preview_url);
+          if (url.protocol !== 'https:' || url.hostname !== 'ethereal.email') throw new Error('Invalid preview link.');
+          const link = document.createElement('a'); link.href = url.href; link.target = '_blank'; link.rel = 'noopener noreferrer';
+          link.textContent = 'Open preview (not delivered)'; outcome.append(document.createTextNode(' '), link);
+        }
+      } catch (error) {
+        if (valid()) outcome.textContent = error.message;
+        throw error;
+      }
+    }));
+    content.append(email, outcome);
   }
 
   function setAccount(identity) {
@@ -142,9 +208,11 @@
     if (generation !== requestGeneration) return;
     if (savedSessionId && !history.sessions.some(session => session.id === savedSessionId)) {
       savedSessionId = null; $('#result').hidden = true; $('#result-content').replaceChildren();
+      savedClassroom.reset();
     }
     if (liveSessionId && !history.sessions.some(session => session.id === liveSessionId)) {
       liveSessionId = null; $('#live-session').hidden = true; $('#live-students').replaceChildren();
+      classroom.reset();
     }
     $('#history').replaceChildren();
     if (!history.sessions.length) $('#history').append(paragraph('No sessions yet. Connect to your teacher’s live Meet session to begin.'));
@@ -153,7 +221,7 @@
       const title = document.createElement('h4'); title.textContent = session.class_title;
       item.append(title, paragraph(`${label(session)} · ${new Date(session.started_at).toLocaleString()}`));
       if (session.status !== 'live') {
-        const open = document.createElement('button'); open.type = 'button'; open.className = 'secondary'; open.textContent = 'View saved presence';
+        const open = document.createElement('button'); open.type = 'button'; open.className = 'secondary'; open.textContent = 'View saved session';
         open.addEventListener('click', () => busy(() => showSaved(session.id))); item.append(open);
         if (user.role === 'teacher') addDeleteControl(item, session);
       } else if (session.source === 'meet') {
@@ -261,6 +329,9 @@
     const content = $('#live-students'); content.replaceChildren();
     const students = user.role === 'teacher' ? snapshot.students : [snapshot.self];
     if (!students.length) content.append(paragraph('No students have connected yet.'));
+    if (user.role === 'teacher') {
+      content.append(paragraph(`Offline students: ${students.filter(student => student.status === 'Offline').map(student => student.name).join(', ') || 'None'}`));
+    }
     for (const student of students) {
       const item = document.createElement('article'); item.className = 'item';
       const title = document.createElement('h4'); title.textContent = student.name;
@@ -269,9 +340,15 @@
         paragraph(`In call after grace: ${duration(student.active_seconds)} · Measured: ${duration(student.total_seconds)}`),
         paragraph(`Cannot verify (excluded since enrollment): ${duration(student.excluded_seconds)}`));
       if (student.grace_remaining_ms !== null) item.append(paragraph(`Grace: ${duration(Math.ceil(student.grace_remaining_ms / 1000))} remaining`));
+      if (student.participation) item.append(participationLine(student.participation));
       content.append(item);
     }
     $('#live-status').textContent = `Updated ${new Date(snapshot.server_time).toLocaleTimeString()}`;
+    await classroom.refresh(id);
+  }
+
+  function participationLine(summary) {
+    return paragraph(`Participation Rate: ${rate(summary.participation_rate)} · ${summary.classification} · ${summary.responded_count}/${summary.eligible_count} eligible prompts`);
   }
 
   async function showAccount(identity) {
@@ -361,6 +438,7 @@
       if (error.status === 401) clearAccount();
       else if (error.status === 404) {
         liveSessionId = null; $('#live-session').hidden = true; $('#live-students').replaceChildren();
+        classroom.reset();
         try { await refresh(); status('The selected session is no longer available. History updated.'); } catch (refreshError) { fail(refreshError); }
       } else $('#live-status').textContent = 'Updates unavailable; last snapshot may be stale. Retry Refresh.';
     }

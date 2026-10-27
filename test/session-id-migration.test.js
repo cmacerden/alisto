@@ -23,7 +23,7 @@ test('version-3 migration preserves Meet results and deleted-ID high-water marks
       VALUES (22, 1, 100000, 100000, 160000, 20000, 30000, 10000, 200000, 200.0/3);`);
   const before = db.prepare('SELECT * FROM meet_students').all();
   db.close(); db = openDatabase(filename);
-  assert.equal(db.pragma('user_version', { simple: true }), 4);
+  assert.equal(db.pragma('user_version', { simple: true }), 5);
   assert.deepEqual(db.prepare('SELECT * FROM meet_students').all(), before);
   let presence = new PresenceService(db);
   presence.deleteEnded(22, 1); db.close();

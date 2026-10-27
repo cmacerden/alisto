@@ -17,6 +17,15 @@ p { margin: 8px 0 14px; overflow-wrap: anywhere; }
 .notice { border-left: 3px solid #b74932; padding: 8px 12px; background: #f4eee4; font-size: 12px; }
 label { display: block; font-weight: 600; margin: 14px 0 5px; }
 input, select, button { font: inherit; }
+textarea { width: 100%; font: inherit; color: inherit; background: #fffefa; border: 1px solid #b9c4b8; border-radius: 7px; padding: 9px; resize: vertical; }
+.chat-area { border-top: 1px solid #dce1d7; padding-top: 18px; margin-top: 18px; }
+.classroom-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0; padding-bottom: 10px; border-bottom: 1px solid #dce1d7; }
+.classroom-tabs button { flex: 1 1 auto; margin: 0; padding: 8px 10px; font-size: 12px; color: #295b48; background: transparent; border: 1px solid #b9c4b8; }
+.classroom-tabs button[aria-selected="true"] { color: #fff; background: #295b48; border-color: #295b48; }
+.chat-scroll { max-height: 320px; overflow-y: auto; }
+.message-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.prompt-highlight { background: #eef3e9; border-left: 3px solid #295b48; padding: 12px; margin: 14px 0; }
+progress { width: 100%; accent-color: #295b48; }
 input, select { width: 100%; min-height: 44px; background: #fffefa; border: 1px solid #b9c4b8; border-radius: 7px; padding: 9px; color: inherit; }
 button { border: 0; border-radius: 7px; padding: 10px 14px; color: white; background: #295b48; cursor: pointer; margin-top: 12px; min-height: 42px; }
 form button { width: 100%; }

@@ -23,7 +23,7 @@ test('Phase 1 databases upgrade additively without losing accounts, classes, or 
   db.close();
   db = openDatabase(filename);
   try {
-    assert.equal(db.pragma('user_version', { simple: true }), 4);
+    assert.equal(db.pragma('user_version', { simple: true }), 5);
     assert.equal(db.prepare('SELECT password_hash FROM teachers WHERE id = 7').get().password_hash, 'existing-hash');
     assert.equal(db.prepare('SELECT name FROM students WHERE id = 9').get().name, 'Existing Student');
     assert.equal(db.prepare('SELECT code FROM classes WHERE id = 4').get().code, 'OLD234');
@@ -33,7 +33,7 @@ test('Phase 1 databases upgrade additively without losing accounts, classes, or 
   } finally { db.close(); }
 });
 
-test('version-2 website results upgrade to version 4 without changing their meaning or counters', t => {
+test('version-2 website results upgrade to version 5 without changing their meaning or counters', t => {
   const root = process.platform === 'win32' && process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'Temp', 'opencode') : os.tmpdir();
   const directory = fs.mkdtempSync(path.join(root, 'alisto-meet-migration-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
@@ -51,7 +51,7 @@ test('version-2 website results upgrade to version 4 without changing their mean
   const before = db.prepare('SELECT * FROM session_students').get();
   db.close(); db = openDatabase(filename);
   try {
-    assert.equal(db.pragma('user_version', { simple: true }), 4);
+    assert.equal(db.pragma('user_version', { simple: true }), 5);
     assert.deepEqual(db.prepare('SELECT * FROM session_students').get(), before);
     assert.equal(db.prepare('SELECT source FROM sessions').get().source, 'alisto');
     const presence = new PresenceService(db);

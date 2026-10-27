@@ -9,7 +9,10 @@ const { createApp } = require('../lib/app');
 
 const runtime = createApp({
   databasePath: ':memory:', sessionSecret: 'extension-preview-only-secret-at-least-32-characters',
-  cookieName: 'alisto.extension-preview.sid', enableRateLimit: false
+  cookieName: 'alisto.extension-preview.sid', enableRateLimit: false,
+  reportMailer: { async send() {
+    return { mode: 'preview', message: 'Mocked preview only — no email was generated or delivered. Real SMTP/Ethereal is not used by this UI preview.' };
+  } }
 });
 const hash = bcrypt.hashSync('ExtensionTest123!', 12);
 runtime.db.prepare('INSERT INTO teachers (id, name, email, password_hash) VALUES (1, ?, ?, ?)')

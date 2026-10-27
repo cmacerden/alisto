@@ -3,3 +3,26 @@ data/
 .env
 coverage/
 *.log
+
+# Local secrets, databases, and private key material.
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.db
+*.db-*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Keep documentation exports and local agent configuration off GitHub.
+docs/
+generated_documents/
+*.docx
+*.pdf
+opencode.json
+opencode.jsonc
+.opencode/opencode.json
+.opencode/opencode.jsonc

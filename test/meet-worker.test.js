@@ -5,13 +5,14 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { meetCodeFromUrl, meetTabContext, verifiedMeetSample } = require('../extension/meet');
 
-function worker() {
-  let saved = {};
-  let time = 100000;
+function worker(options = {}) {
+  let saved = structuredClone(options.saved || {});
+  let time = options.time ?? 100000;
   let user = { id: 1, role: 'student' };
   let nextSource = 0;
   const events = {};
   const calls = [];
+  let requestHandler;
   const tabs = new Map([[10, { id: 10, url: 'https://meet.google.com/abc-defg-hij', state: 'in' }],
     [11, { id: 11, url: 'https://meet.google.com/abc-defg-hij', state: 'out' }]]);
   const context = vm.createContext({
@@ -19,7 +20,11 @@ function worker() {
     crypto: { randomUUID: () => `profile_source_${++nextSource}_12345678` },
     Date: class extends Date { static now() { return time; } },
     createExtensionApi: () => ({ async request(url, options) {
-      calls.push({ url, options: options ? structuredClone(options) : undefined });
+       calls.push({ url, options: options ? structuredClone(options) : undefined });
+       if (requestHandler) {
+         const result = await requestHandler(url, options);
+         if (result !== undefined) return result;
+       }
       if (url === '/api/auth/me') return { user };
       if (url.startsWith('/api/meet/live/')) return { session: { id: 7 } };
       return {};
@@ -57,6 +62,7 @@ function worker() {
     saved: () => saved,
     advance(ms) { time += ms; },
     user(identity) { user = identity; },
+    handle(fn) { requestHandler = fn; },
     observe: (tab = 10, overrides = {}) => {
       const url = overrides.url ?? tabs.get(tab)?.url;
       return dispatch({ type: 'ALISTO_MEET_OBSERVATION', meetCode: meetCodeFromUrl(url) || 'abc-defg-hij', state: 'in' },
@@ -185,4 +191,42 @@ test('worker enrolls the reported /meet/code room and accepts current-document o
   assert.equal(w.observations().at(-1).options.body.meetCode, 'bjt-yrbc-qqt');
   w.tabs.get(10).state = 'out'; await w.observe();
   assert.equal(w.observations().at(-1).options.body.state, 'out');
+});
+
+test('worker resumes persisted bindings without crediting stale sibling evidence after suspension', async () => {
+  const original = worker();
+  await original.dispatch({ type: 'ALISTO_MEET_TRACK', tabId: 10 });
+  await original.dispatch({ type: 'ALISTO_MEET_TRACK', tabId: 11 });
+  const source = original.observations().at(-1).options.body.sourceId;
+  const resumed = worker({ saved: original.saved(), time: 200000 });
+  await resumed.observe(11);
+  assert.equal(resumed.observations().at(-1).options.body.state, 'unknown');
+  assert.equal(resumed.observations().at(-1).options.body.sourceId, source);
+  assert.equal(resumed.calls.filter(call => call.url.endsWith('/join')).length, 0);
+  await resumed.observe(10);
+  assert.equal(resumed.observations().at(-1).options.body.state, 'in');
+});
+
+test('worker survives a backend outage and resamples without losing its source or inventing fresh queued evidence', async () => {
+  const w = worker(); await w.dispatch({ type: 'ALISTO_MEET_TRACK', tabId: 10 });
+  const source = w.observations().at(-1).options.body.sourceId;
+  w.handle(url => { if (url.endsWith('/observe')) throw new Error('Backend unavailable'); });
+  assert.equal((await w.observe()).ok, false);
+  assert.equal(Object.keys(w.saved().meetTrackingV1).length, 1);
+  w.advance(20000); w.handle(null); w.tabs.get(10).state = 'out';
+  assert.equal((await w.observe()).ok, true);
+  assert.equal(w.observations().at(-1).options.body.sourceId, source);
+  assert.equal(w.observations().at(-1).options.body.state, 'out');
+});
+
+test('a queued content message ages into unknown instead of renewing in-call evidence', async () => {
+  const w = worker(); await w.dispatch({ type: 'ALISTO_MEET_TRACK', tabId: 10 });
+  let finish;
+  w.handle(url => url === '/api/auth/me' ? new Promise(resolve => { finish = resolve; }) : undefined);
+  const first = w.observe();
+  await new Promise(resolve => setImmediate(resolve));
+  const queued = w.observe(); w.advance(20000); w.handle(null);
+  finish({ user: { id: 1, role: 'student' } });
+  await first; await queued;
+  assert.equal(w.observations().at(-1).options.body.state, 'unknown');
 });

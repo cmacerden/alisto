@@ -8,6 +8,7 @@
   <script src="meet.js" defer></script>
   <script src="api.js" defer></script>
   <script src="time.js" defer></script>
+  <script src="classroom.js" defer></script>
   <script src="panel.js" defer></script>
 </head>
 <body>
@@ -48,12 +49,52 @@
         <p class="muted">Open the correct Meet tab, then start its Alisto session from a class above. Students use that actual Meet code. Ending Alisto measurement does not end the Google Meet call.</p>
       </section>
       <section id="student-meet" class="card" hidden aria-labelledby="student-meet-heading"><h3 id="student-meet-heading">Connect your Meet classroom</h3><p class="muted">Join the call in Google Meet, then connect this tab to the teacher's live Alisto session. Detection continues with the sidebar closed while this Meet tab remains open.</p><label for="student-meet-tab">Google Meet tab</label><select id="student-meet-tab" aria-describedby="student-tab-help"><option value="">Use the selected browser tab</option></select><button id="find-meet-tabs" class="secondary" type="button">Find Meet tabs</button><p class="muted" id="student-tab-help">If the sidebar cannot identify the selected tab, click Find Meet tabs and choose the actual meeting code. This searches only open Google Meet tabs, not other websites.</p><button id="connect-meet" type="button">Connect this Meet tab</button><p class="muted">After an extension reload, refresh your Meet tab once to load the detector. Allow Alisto site access on meet.google.com; if using Incognito, enable Allow in Incognito in extension details. Each additional Meet tab must be connected separately.</p></section>
-      <section id="live-session" class="card" hidden aria-labelledby="live-heading"><div class="account-heading"><h3 id="live-heading">Live Meet presence</h3><button id="end-meet" class="secondary" type="button" hidden>End Alisto session</button></div><p id="live-details" class="muted"></p><p id="live-status" role="status" aria-live="polite"></p><div id="live-students"></div><p class="muted">Activity Rate = detected in-call time / verified measured time after 60-second grace. “Cannot verify” time is excluded from both. Signals are browser-reported, not independently verified attendance.</p></section>
+      <section id="live-session" class="card" hidden aria-labelledby="live-heading"><div class="account-heading"><h3 id="live-heading">Live classroom</h3><button id="end-meet" class="secondary" type="button" hidden>End Alisto session</button></div><p id="live-details" class="muted"></p><p id="live-status" role="status" aria-live="polite"></p><div id="live-overview"><div id="live-students"></div><p class="muted">Activity Rate = detected in-call time / verified measured time after 60-second grace. “Cannot verify” time is excluded from both. Signals are browser-reported, not independently verified attendance.</p></div><div id="live-classroom" hidden></div></section>
       <section class="card" aria-labelledby="history-heading"><div class="account-heading"><h3 id="history-heading">Session history</h3><button id="refresh" class="secondary" type="button">Refresh</button></div><div id="history"></div></section>
-      <section id="result" class="card" aria-labelledby="result-heading" hidden><h3 id="result-heading">Saved presence result</h3><p class="notice" id="result-source"></p><div id="result-content"></div></section>
-      <section class="card" aria-labelledby="next-heading"><h3 id="next-heading">Coming next</h3><p class="muted">General Chat, Participation Chat, timed prompts, and full reports/exports are not enabled yet.</p></section>
+      <section id="result" class="card" aria-labelledby="result-heading" hidden><h3 id="result-heading">Saved session report</h3><p class="notice" id="result-source"></p><div id="result-content"></div><div id="saved-classroom" hidden></div></section>
     </section>
-    <footer>Local development build · English Meet UI adapter. Only meeting code and call-state signals are sent; no participant lists, chat content, camera/mic state, or focus history. Missing signals expire after 15 seconds as “Cannot verify”.</footer>
+    <footer>Local development build · English Meet UI adapter. The detector sends only meeting code and call-state signals; Alisto chat is stored separately. No Meet participant lists, Meet chat, camera/mic state, or focus history. Missing signals expire after 15 seconds as “Cannot verify”.</footer>
   </main>
+  <template id="classroom-template">
+    <div class="classroom-tabs" role="tablist" aria-label="Classroom views">
+      <button type="button" role="tab" data-tab="overview">Overview</button>
+      <button type="button" role="tab" data-tab="general">General Chat</button>
+      <button type="button" role="tab" data-tab="participation">Prompts &amp; responses</button>
+    </div>
+    <section data-tab-panel="overview" role="tabpanel" tabindex="0"></section>
+    <p data-chat-status class="muted" role="status"></p>
+    <section class="chat-area" data-tab-panel="general" role="tabpanel" tabindex="0" hidden>
+      <h3>General Chat</h3>
+      <p class="muted">Discussion does not affect Activity Rate or Participation Rate. Showing the latest 100 messages.</p>
+      <div data-messages class="chat-scroll" aria-label="Class discussion"></div>
+      <form data-message-form>
+        <label>Message<textarea name="message" maxlength="2000" rows="2" required></textarea></label>
+        <button type="submit">Send message</button>
+      </form>
+    </section>
+    <section class="chat-area" data-tab-panel="participation" role="tabpanel" tabindex="0" hidden>
+      <h3>Participation Chat</h3>
+      <p class="muted">One response per eligible prompt earns credit. Everyone and Teacher only earn the same credit. These rates describe response frequency, not attention or learning.</p>
+      <p data-self-rate></p>
+      <form data-prompt-form hidden>
+        <label>Required prompt<textarea name="prompt" maxlength="2000" rows="3" required></textarea></label>
+        <label>Time limit (minutes)<input name="minutes" type="number" min="0.1" max="60" step="0.1" value="1" required></label>
+        <button type="submit">Post timed prompt</button>
+      </form>
+      <div data-current-prompt class="prompt-highlight" hidden>
+        <h4>Current prompt</h4><p data-prompt-body></p><p data-countdown></p>
+        <button data-close-prompt class="secondary" type="button" hidden>Close prompt now</button>
+        <p data-response-notice class="muted"></p>
+        <form data-response-form hidden>
+          <label>Your response<textarea name="response" maxlength="2000" rows="3" required></textarea></label>
+          <label>Who can read this?<select name="visibility"><option value="everyone">Everyone</option><option value="teacher">Teacher only</option></select></label>
+          <button type="submit">Submit response</button>
+        </form>
+      </div>
+      <div data-progress hidden><p data-progress-label></p><progress max="1" value="0" aria-label="Eligible students who responded"></progress><div data-buckets></div></div>
+      <h4>Prompts and responses</h4>
+      <div data-prompts class="chat-scroll" aria-label="Participation history"></div>
+    </section>
+  </template>
 </body>
 </html>

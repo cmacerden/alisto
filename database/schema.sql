@@ -89,3 +89,43 @@ CREATE TABLE IF NOT EXISTS meet_sources (
   PRIMARY KEY (session_id, student_id, source_id),
   FOREIGN KEY (session_id, student_id) REFERENCES meet_students(session_id, student_id) ON DELETE RESTRICT
 );
+
+CREATE TABLE IF NOT EXISTS messages (
+  id INTEGER PRIMARY KEY,
+  session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE RESTRICT,
+  teacher_id INTEGER REFERENCES teachers(id) ON DELETE RESTRICT,
+  student_id INTEGER REFERENCES students(id) ON DELETE RESTRICT,
+  body TEXT NOT NULL CHECK(length(body) BETWEEN 1 AND 2000),
+  created_at INTEGER NOT NULL,
+  CHECK((teacher_id IS NOT NULL) != (student_id IS NOT NULL))
+);
+CREATE INDEX IF NOT EXISTS messages_session ON messages(session_id, id);
+
+CREATE TABLE IF NOT EXISTS participation_activities (
+  id INTEGER PRIMARY KEY,
+  session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE RESTRICT,
+  teacher_id INTEGER NOT NULL REFERENCES teachers(id) ON DELETE RESTRICT,
+  body TEXT NOT NULL CHECK(length(body) BETWEEN 1 AND 2000),
+  created_at INTEGER NOT NULL,
+  deadline_at INTEGER NOT NULL CHECK(deadline_at > created_at),
+  closed_at INTEGER CHECK(closed_at >= created_at AND closed_at <= deadline_at)
+);
+CREATE INDEX IF NOT EXISTS activities_session ON participation_activities(session_id, id);
+CREATE UNIQUE INDEX IF NOT EXISTS activities_one_open ON participation_activities(session_id) WHERE closed_at IS NULL;
+
+-- Snapshot eligibility when a prompt is posted, not when a response arrives.
+-- This also preserves event ordering when joins/prompts share a millisecond.
+CREATE TABLE IF NOT EXISTS participation_eligibility (
+  activity_id INTEGER NOT NULL REFERENCES participation_activities(id) ON DELETE RESTRICT,
+  student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE RESTRICT,
+  PRIMARY KEY(activity_id, student_id)
+);
+CREATE TABLE IF NOT EXISTS participation_responses (
+  activity_id INTEGER NOT NULL,
+  student_id INTEGER NOT NULL,
+  body TEXT NOT NULL CHECK(length(body) BETWEEN 1 AND 2000),
+  visibility TEXT NOT NULL DEFAULT 'everyone' CHECK(visibility IN ('everyone', 'teacher')),
+  received_at INTEGER NOT NULL,
+  PRIMARY KEY(activity_id, student_id),
+  FOREIGN KEY(activity_id, student_id) REFERENCES participation_eligibility(activity_id, student_id) ON DELETE RESTRICT
+);
